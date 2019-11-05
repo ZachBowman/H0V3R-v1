@@ -1,4 +1,16 @@
-Assets/
+Assets/Materials/
+Assets/Models/
+Assets/Prefabs/
+Assets/Scenes/
+Assets/Surfaces/
+
 Library/
 Temp/
 Textures/ 
+
+*.asset
+*.blend
+*.fbx
+*.meta
+*.prefab
+*.unity

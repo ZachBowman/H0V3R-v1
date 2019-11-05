@@ -322,6 +322,7 @@
     <Compile Include="Assets\Scripts\new_car_physics2.cs" />
     <Compile Include="Assets\Scripts\obstacle_script.cs" />
     <Compile Include="Assets\Scripts\section_script.cs" />
+    <Compile Include="Assets\Scripts\Stabilizers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Packages\com.unity.package-manager-ui\Editor\Resources\Styles\Main_Dark.uss" />
