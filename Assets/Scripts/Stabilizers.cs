@@ -59,8 +59,6 @@ public class Stabilizers : MonoBehaviour
   float pitch_angle_stop = .2f;
 
   // yaw
-  //float turning_rotation = 0f;
-  //float rotation_multiplier = 1.3f;
   float half_yaw_left = 315f;
   float max_yaw_left = 270f;
   float half_yaw_right = 45f;
@@ -73,12 +71,69 @@ public class Stabilizers : MonoBehaviour
   float yaw_acceleration_far = .07f;
   float yaw_acceleration_near = .03f;
 
+  // action keys
+  bool key_roll_left = false;
+  bool key_roll_right = false;
+  bool key_pitch_forward = false;
+  bool key_pitch_backward = false;
+  bool key_yaw_left = false;
+  bool key_yaw_right = false;
+
   //////////////////////////////////////////////////
 
   void Start ()
     {
     body = GetComponent<Rigidbody> ();
     physics = GetComponent<car_physics> ();
+
+    //test_stabilizers ();
+    }
+
+  //////////////////////////////////////////////////
+
+  void Update ()
+    {
+    if (Input.GetButton ("Roll Left") && !key_roll_left)
+      {
+      key_roll_left = true;
+      test_left_roll_stabilizer ();
+      }
+    else if (key_roll_left) key_roll_left = false;
+
+    if (Input.GetButton ("Roll Right") && !key_roll_right)
+      {
+      key_roll_right = true;
+      test_right_roll_stabilizer ();
+      }
+    else if (key_roll_right) key_roll_right = false;
+
+    if (Input.GetButton ("Pitch Forward") && !key_pitch_forward)
+      {
+      key_pitch_forward = true;
+      test_forward_pitch_stabilizer ();
+      }
+    else if (key_pitch_forward) key_pitch_forward = false;
+
+    if (Input.GetButton ("Pitch Backward") && !key_pitch_backward)
+      {
+      key_pitch_backward = true;
+      test_backward_pitch_stabilizer ();
+      }
+    else if (key_pitch_backward) key_pitch_backward = false;
+
+    if (Input.GetButton ("Yaw Left") && !key_yaw_left)
+      {
+      key_yaw_left = true;
+      test_left_yaw_stabilizer ();
+      }
+    else if (key_yaw_left) key_yaw_left = false;
+
+    if (Input.GetButton ("Yaw Right") && !key_yaw_right)
+      {
+      key_yaw_right = true;
+      test_right_yaw_stabilizer ();
+      }
+    else if (key_yaw_right) key_yaw_right = false;
     }
 
   //////////////////////////////////////////////////
@@ -338,5 +393,57 @@ public class Stabilizers : MonoBehaviour
     else if (rotation.y < 360f && rotation.y >= half_yaw_left) return Yaw.half_left;
     else if (rotation.y < half_yaw_left && rotation.y >= max_yaw_left) return Yaw.full_left;
     else return Yaw.none;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_stabilizers ()
+    {
+    test_left_roll_stabilizer ();
+    //test_right_roll_stabilizer ();
+    //body.angularVelocity = transform.right * -20f;  // test pitch
+    //body.angularVelocity = (transform.forward * 20f) + (transform.right * -20f);
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_left_roll_stabilizer ()
+    {
+    body.angularVelocity = transform.forward * 20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_right_roll_stabilizer ()
+    {
+    body.angularVelocity = transform.forward * -20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_forward_pitch_stabilizer ()
+    {
+    body.angularVelocity = transform.right * 20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_backward_pitch_stabilizer ()
+    {
+    body.angularVelocity = transform.right * -20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_left_yaw_stabilizer ()
+    {
+    body.angularVelocity = transform.up * -20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  void test_right_yaw_stabilizer ()
+    {
+    body.angularVelocity = transform.up * 20f;
     }
   }
