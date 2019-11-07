@@ -5,14 +5,6 @@ using UnityEngine;
 
 public class car_physics : MonoBehaviour
   {
-  public enum Forward_Physics
-    {
-    move_position,
-    set_velocity,
-    auto_set_velocity,  // forward drive is autonomous
-    add_relative_force  // with VelocityChange
-    }
-
   public enum Turning_Physics
     {
     speed_based,
@@ -24,20 +16,12 @@ public class car_physics : MonoBehaviour
     strafing
     }
 
-  // Only used for runner controls
-  //enum Yaw
-  //  {
-  //  none,
-  //  half_left,
-  //  full_left,
-  //  half_right,
-  //  full_right
-  //  }
-
-  // input physics
+  // public attributes
+  public bool alive = true;
   public bool runner_controls;
-  public Forward_Physics forward_physics;
   public Turning_Physics turning_physics;
+
+  Drive_Engine drive_engine;
   Hover_Engine hover_engine;
 
   // objects
@@ -45,15 +29,6 @@ public class car_physics : MonoBehaviour
   public GameObject start;
   public Vector3 external_force = Vector3.zero;
   //public GameObject missile;
-
-  // forward
-  float forward_speed;
-  float forward_speed_max;
-  float forward_speed_max_adjusted;
-  float forward_acceleration;
-  float forward_acceleration_adjusted;
-  float analog_drive_input_raw = 0;
-  float analog_drive_input = 0;
 
   // horizontal
   float horizontal_speed;
@@ -98,62 +73,28 @@ public class car_physics : MonoBehaviour
   float pitch_acceleration_near = .03f;
   float pitch_angle_stop = .2f;
 
-  bool alive = true;
-
   void Start ()
     {
+    body = GetComponent<Rigidbody> ();
+    hover_engine = GetComponent<Hover_Engine> ();
+    drive_engine = GetComponent<Drive_Engine> ();
+
     if (runner_controls)
       {
-      forward_physics = Forward_Physics.auto_set_velocity;
+      //forward_physics = Forward_Physics.auto_set_velocity;
       turning_physics = Turning_Physics.strafing;
-
-      //forward_physics = Forward_Physics.set_velocity;
       }
     else
       {
       // DON'T CHANGE THESE ////////
-      forward_physics = Forward_Physics.set_velocity;
+      //forward_physics = Forward_Physics.set_velocity;
       turning_physics = Turning_Physics.angular_velocity;
       //////////////////////////////
-
-      //forward_physics = Forward_Physics.move_position;
       }
-
-    body = GetComponent<Rigidbody> ();
-    hover_engine = GetComponent<Hover_Engine> ();
 
     Vector3 arrow_rotation = start.transform.rotation.eulerAngles;
     transform.rotation = Quaternion.Euler (new Vector3 (transform.rotation.x, arrow_rotation.y, transform.rotation.z));
     transform.position = start.transform.position;
-
-    // forward
-    if (forward_physics == Forward_Physics.move_position)
-      {
-      forward_speed_max = .9f;
-      forward_acceleration = .02f;
-      if (turning_physics == Turning_Physics.speed_based) rotation_multiplier = 2.5f;
-      }
-    else if (forward_physics == Forward_Physics.set_velocity)
-      {
-      forward_speed_max = 70f;
-      forward_acceleration = 1f;
-      if (turning_physics == Turning_Physics.speed_based) rotation_multiplier = .03f;
-      }
-    else if (forward_physics == Forward_Physics.auto_set_velocity)
-      {
-      forward_speed_max = 70f;
-      forward_acceleration = .1f;
-      }
-    else if (forward_physics == Forward_Physics.add_relative_force)
-      {
-      forward_speed_max = 30f;
-      forward_acceleration = .5f;
-      if (turning_physics == Turning_Physics.speed_based) rotation_multiplier = .1f;
-      }
-
-    forward_speed = 0f;
-    forward_speed_max_adjusted = forward_speed_max;
-    forward_acceleration_adjusted = forward_acceleration;
 
     // turning
     if (turning_physics == Turning_Physics.constant_local_rotation)
@@ -168,6 +109,12 @@ public class car_physics : MonoBehaviour
       {
       rotation_multiplier = 500f;
       }
+    else if (turning_physics == Turning_Physics.speed_based)
+      {
+      if (drive_engine.forward_physics == Drive_Engine.Forward_Physics.move_position) rotation_multiplier = 2.5f;
+      if (drive_engine.forward_physics == Drive_Engine.Forward_Physics.set_velocity) rotation_multiplier = .03f;
+      if (drive_engine.forward_physics == Drive_Engine.Forward_Physics.add_relative_force) rotation_multiplier = .1f;
+      }
     else if (turning_physics == Turning_Physics.strafing)
       {
       horizontal_speed_max = 25f;
@@ -179,14 +126,6 @@ public class car_physics : MonoBehaviour
 
   void Update ()
     {
-    //if (Input.GetKeyDown (KeyCode.Space) && !key_space)
-    //  {
-    //  key_space = true;
-    //  jump = true;
-    //  external_force = Vector3.up * 320f;
-    //  }
-    //if (Input.GetKeyUp (KeyCode.Space) && key_space) key_space = false;
-
     //if (Input.GetButtonDown ("Fire1"))
     //{
     //Transform spawn = transform.Find ("player_missile_spawn");
@@ -212,105 +151,7 @@ public class car_physics : MonoBehaviour
 
   void FixedUpdate ()
     {
-    Drive ();
     Turn ();
-    }
-
-  //////////////////////////////////////////////////
-
-  void Drive ()
-    {
-    calculate_forward_speed ();
-
-    if (forward_physics == Forward_Physics.set_velocity || forward_physics == Forward_Physics.auto_set_velocity)
-      {
-      Vector3 current_velocity = body.velocity;
-      Vector3 direction = transform.forward;
-      direction.y = 0;
-      Vector3 new_velocity = forward_speed * direction.normalized;
-      new_velocity.y = current_velocity.y;
-      body.velocity = new_velocity;
-      }
-    else if (forward_physics == Forward_Physics.move_position)
-      {
-      Mathf.Clamp (forward_speed, -forward_speed_max, forward_speed_max);
-      Vector3 forward_movement = transform.forward * forward_speed;
-      body.MovePosition (body.position + forward_movement);
-      }
-    else if (forward_physics == Forward_Physics.add_relative_force)
-      {
-      Mathf.Clamp (forward_speed, -forward_speed_max, forward_speed_max);
-      float forward_speed_adjustment = forward_speed - transform.InverseTransformDirection (body.velocity).z;
-      float side_speed_adjustment = -transform.InverseTransformDirection (body.velocity).x;
-      body.AddRelativeForce (side_speed_adjustment, 0f, forward_speed + forward_speed_adjustment, ForceMode.VelocityChange);
-
-      //if (jump) body.AddForce (Vector3.up * 10f, ForceMode.Acceleration);
-      //if (external_force.y > 0f) external_force.y += Physics.gravity.y;
-      //if (external_force.y < 0f) external_force.y = 0f;
-      //if (external_force.y > 0f)
-      //  {
-      //  body.AddForce (external_force, ForceMode.Acceleration);
-      //  external_force.y -= 10f;
-      //  }
-      }
-
-    check_forward_collision ();
-    }
-
-  //////////////////////////////////////////////////
-
-  void calculate_forward_speed ()
-    {
-    // 1 -> 1
-    // .9 -> .8
-    // .8 -> .6
-    // .7 -> .4
-    // .6 -> .2
-    // .5 -> 0
-
-    // Axis input will be in range of 0 to 1, 0 to -1.
-    analog_drive_input_raw = Input.GetAxis ("Analog Drive Speed");
-
-    // Input does not become reliable until outside the range of -0.5 to 0.5.
-    if (analog_drive_input_raw > 0.5 || analog_drive_input_raw < -0.5)
-      {
-      if (analog_drive_input_raw > 0) analog_drive_input = Convert.ToSingle (analog_drive_input_raw - 0.5) * 2;
-      else analog_drive_input = Convert.ToSingle (analog_drive_input_raw + 0.5) * 2;
-
-      // Negative is forward stick.
-      if (analog_drive_input_raw < 0)
-        {
-        forward_acceleration_adjusted = forward_acceleration * analog_drive_input * -1;
-        forward_speed_max_adjusted = forward_speed_max * analog_drive_input * -1;
-        if (forward_speed < forward_speed_max_adjusted) forward_speed += forward_acceleration_adjusted;
-        }
-
-      // Positive is backward stick.
-      else if (analog_drive_input_raw > 0)
-        {
-        forward_acceleration_adjusted = forward_acceleration * analog_drive_input;
-        forward_speed_max_adjusted = forward_speed_max * analog_drive_input;
-        if (forward_speed > -forward_speed_max_adjusted) forward_speed -= forward_acceleration_adjusted;
-        }
-      }
-    else  // keyboard input
-      {
-      forward_speed_max_adjusted = forward_speed_max;
-
-      if ((Input.GetButton ("Drive Forward") || forward_physics == Forward_Physics.auto_set_velocity) && alive)
-        {
-        if (forward_speed < forward_speed_max && can_drive ()) forward_speed += forward_acceleration;
-        }
-      else if (Input.GetButton ("Drive Backward") && alive)
-        {
-        if (forward_speed > -forward_speed_max) forward_speed -= forward_acceleration;
-        }
-      else  // not driving
-        {
-        if (forward_speed > -.1f && forward_speed < .1f) forward_speed = 0f;
-        if (forward_speed != 0f) forward_speed = forward_speed * 0.9f;
-        }
-      }
     }
 
   //////////////////////////////////////////////////
@@ -319,8 +160,8 @@ public class car_physics : MonoBehaviour
     {
     if (turning_physics == Turning_Physics.speed_based)
       {
-      if (Input.GetButton ("Turn Left")) turning_rotation = forward_speed * -rotation_multiplier;
-      if (Input.GetButton ("Turn Right")) turning_rotation = forward_speed * rotation_multiplier;
+      if (Input.GetButton ("Turn Left")) turning_rotation = drive_engine.forward_speed * -rotation_multiplier;
+      if (Input.GetButton ("Turn Right")) turning_rotation = drive_engine.forward_speed * rotation_multiplier;
 
       rotation_restriction ();
 
@@ -450,44 +291,11 @@ public class car_physics : MonoBehaviour
 
   //////////////////////////////////////////////////
 
-  private bool can_drive ()
-    {
-    if (hover_engine.vertical_physics != Hover_Engine.Vertical_Physics.ground_driving) return true;
-    if (on_ground ()) return true;
-    return false;
-    }
-
-  //////////////////////////////////////////////////
-
   // Check if car is grounded (only for wheeled vehicles).
   private bool on_ground ()
     {
     Vector3 ray_start = transform.position + new Vector3 (0f, 0f, 0f);
     return Physics.Raycast (ray_start, Vector3.down, .5f);
-    }
-
-  //////////////////////////////////////////////////
-
-  void check_forward_collision ()
-    {
-    bool collision_front = false;
-    Vector3 ray_start = transform.position + new Vector3 (0f, .5f, 0f);
-    RaycastHit hit;
-
-    collision_front = Physics.Raycast (ray_start, transform.forward, out hit, 3f);
-
-    if (collision_front)// && forward_speed > .3f)
-      {
-      hit_obstacle (hit.transform.gameObject);
-      }
-    }
-
-  //////////////////////////////////////////////////
-
-  void hit_obstacle (GameObject obj)
-    {
-    Debug.Log ("Hit " + obj.name);
-    if (runner_controls) alive = false;
     }
 
   //////////////////////////////////////////////////
@@ -509,11 +317,6 @@ public class car_physics : MonoBehaviour
     //GUI.Label (new Rect (10, 240, 300, 20), "global angular velocity x: " + body.angularVelocity.x.ToString ());
     //GUI.Label (new Rect (10, 260, 300, 20), "global angular velocity y: " + body.angularVelocity.y.ToString ());
     //GUI.Label (new Rect (10, 280, 300, 20), "global angular velocity z: " + body.angularVelocity.z.ToString ());
-
-    GUI.Label (new Rect (10, 240, 300, 20), "analog_drive_input_raw: " + analog_drive_input_raw.ToString ());
-    GUI.Label (new Rect (10, 260, 300, 20), "analog_drive_input: " + analog_drive_input.ToString ());
-    GUI.Label (new Rect (10, 280, 300, 20), "forward speed: " + forward_speed.ToString ());
-    GUI.Label (new Rect (10, 300, 300, 20), "forward speed max adjusted: " + forward_speed_max_adjusted.ToString ());
 
     GUI.Label (new Rect (10, 340, 300, 20), "horizontal speed: " + horizontal_speed.ToString ());
     GUI.Label (new Rect (10, 360, 300, 20), "horizontal speed max: " + horizontal_speed_max.ToString ());

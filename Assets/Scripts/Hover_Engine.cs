@@ -144,6 +144,15 @@ public class Hover_Engine : MonoBehaviour
       current_velocity_vector.y = vertical_speed;
       body.velocity = transform.TransformDirection (current_velocity_vector);
       }
+
+    //if (jump) body.AddForce (Vector3.up * 10f, ForceMode.Acceleration);
+    //if (external_force.y > 0f) external_force.y += Physics.gravity.y;
+    //if (external_force.y < 0f) external_force.y = 0f;
+    //if (external_force.y > 0f)
+    //  {
+    //  body.AddForce (external_force, ForceMode.Acceleration);
+    //  external_force.y -= 10f;
+    //  }
     }
 
   //////////////////////////////////////////////////
