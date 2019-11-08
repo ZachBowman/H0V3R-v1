@@ -34,6 +34,7 @@ public class Stabilizers : MonoBehaviour
 
   Rigidbody body;
   car_physics physics;
+  Turning_Thrusters turning_thrusters;
 
   // roll
   float max_roll_speed = 2f;
@@ -85,6 +86,7 @@ public class Stabilizers : MonoBehaviour
     {
     body = GetComponent<Rigidbody> ();
     physics = GetComponent<car_physics> ();
+    turning_thrusters = GetComponent<Turning_Thrusters> ();
 
     //test_stabilizers ();
     }
@@ -146,7 +148,7 @@ public class Stabilizers : MonoBehaviour
     limit_local_pitch_angle ();
     stabilize_local_pitch ();
 
-    if (physics.turning_physics == car_physics.Turning_Physics.strafing)
+    if (turning_thrusters.turning_physics == Turning_Thrusters.Turning_Physics.strafing)
       {
       limit_local_yaw_angle ();
       stabilize_local_yaw ();
@@ -445,5 +447,18 @@ public class Stabilizers : MonoBehaviour
   void test_right_yaw_stabilizer ()
     {
     body.angularVelocity = transform.up * 20f;
+    }
+
+  //////////////////////////////////////////////////
+
+  // Only for turning physics that set rotation directly.
+  public void rotation_restriction ()
+    {
+    Vector3 angles = transform.rotation.eulerAngles;
+    if (angles.x < 360 - max_pitch_forward && angles.x >= 180) angles.x = 360 - max_pitch_forward;
+    else if (angles.x > max_pitch_forward && angles.x <= 180) angles.x = max_pitch_forward;
+    if (angles.z < 360 - max_roll_left && angles.z >= 180) angles.z = 360 - max_roll_left;
+    else if (angles.z > max_roll_left && angles.z <= 180) angles.z = max_roll_left;
+    transform.rotation = Quaternion.Euler (angles);
     }
   }
